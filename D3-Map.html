@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<head>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/topojson.v2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.1/tinycolor.js"></script>
+  <title>D3 Map</title>
+</head>
+<style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      font-family: Arial;
+    }
+
+    #map {
+      
+    }
+    svg {
+        background: #efefef;
+    }
+
+    path {
+        stroke: white;
+        stroke-width: 0.5px;
+        fill: black;
+    }
+    .country {
+      fill: #ccc;
+      stroke-width: 0.5;
+      stroke: #333;
+    }
+    
+    .city-label {
+      font-size: 12px;
+    }
+    .selected {
+      fill: yellow;
+    }
+    .clicked {
+      fill: red;
+    }
+    .legend {
+      float: right;
+      margin-right: 85px;
+      margin-top: 45px;
+    }
+    p {
+      font-size: 0.85em;
+    }
+    div.tooltip {
+      position: absolute;
+      background: green!important;
+      text-align: center;
+      width: 60px;
+      min-height: 28px;
+      padding: 8px 12px;
+      font: 12px sans-serif;
+      background: lightgray;
+      border: 0px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+
+
+</style>
+
+<body>
+    <h2>World Map with D3</h2>
+    <div id="map"></div>
+<script type="text/javascript">
+
+  // 20200627220626
+// http://api.worldbank.org/v2/country?format=json
+
+const capitals =
+  [
+    
+    {
+      "id": "AFG",
+      "iso2Code": "AF",
+      "name": "Afghanistan",
+      "region": {
+        "id": "SAS",
+        "iso2code": "8S",
+        "value": "South Asia"
+      },
+      "adminregion": {
+        "id": "SAS",
+        "iso2code": "8S",
+        "value": "South Asia"
+      },
+      "incomeLevel": {
+        "id": "LIC",
+        "iso2code": "XM",
+        "value": "Low income"
+      },
+      "lendingType": {
+        "id": "IDX",
+        "iso2code": "XI",
+        "value": "IDA"
+      },
+      "capitalCity": "Kabul",
+      "longitude": "69.1761",
+      "latitude": "34.5228"
+    },
+    
+    
+    
+    {
+      "id": "ARG",
+      "iso2Code": "AR",
+      "name": "Argentina",
+      "region": {
+        "id": "LCN",
+        "iso2code": "ZJ",
+        "value": "Latin America & Caribbean "
+      },
+      "adminregion": {
+        "id": "LAC",
+        "iso2code": "XJ",
+        "value": "Latin America & Caribbean (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Buenos Aires",
+      "longitude": "-58.4173",
+      "latitude": "-34.6118"
+    },
+    {
+      "id": "ARM",
+      "iso2Code": "AM",
+      "name": "Armenia",
+      "region": {
+        "id": "ECS",
+        "iso2code": "Z7",
+        "value": "Europe & Central Asia"
+      },
+      "adminregion": {
+        "id": "ECA",
+        "iso2code": "7E",
+        "value": "Europe & Central Asia (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Yerevan",
+      "longitude": "44.509",
+      "latitude": "40.1596"
+    },
+    {
+      "id": "ASM",
+      "iso2Code": "AS",
+      "name": "American Samoa",
+      "region": {
+        "id": "EAS",
+        "iso2code": "Z4",
+        "value": "East Asia & Pacific"
+      },
+      "adminregion": {
+        "id": "EAP",
+        "iso2code": "4E",
+        "value": "East Asia & Pacific (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "LNX",
+        "iso2code": "XX",
+        "value": "Not classified"
+      },
+      "capitalCity": "Pago Pago",
+      "longitude": "-170.691",
+      "latitude": "-14.2846"
+    },
+    {
+      "id": "ATG",
+      "iso2Code": "AG",
+      "name": "Antigua and Barbuda",
+      "region": {
+        "id": "LCN",
+        "iso2code": "ZJ",
+        "value": "Latin America & Caribbean "
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Saint John's",
+      "longitude": "-61.8456",
+      "latitude": "17.1175"
+    },
+    {
+      "id": "AUS",
+      "iso2Code": "AU",
+      "name": "Australia",
+      "region": {
+        "id": "EAS",
+        "iso2code": "Z4",
+        "value": "East Asia & Pacific"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "LNX",
+        "iso2code": "XX",
+        "value": "Not classified"
+      },
+      "capitalCity": "Canberra",
+      "longitude": "149.129",
+      "latitude": "-35.282"
+    },
+    {
+      "id": "AUT",
+      "iso2Code": "AT",
+      "name": "Austria",
+      "region": {
+        "id": "ECS",
+        "iso2code": "Z7",
+        "value": "Europe & Central Asia"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "LNX",
+        "iso2code": "XX",
+        "value": "Not classified"
+      },
+      "capitalCity": "Vienna",
+      "longitude": "16.3798",
+      "latitude": "48.2201"
+    },
+    {
+      "id": "AZE",
+      "iso2Code": "AZ",
+      "name": "Azerbaijan",
+      "region": {
+        "id": "ECS",
+        "iso2code": "Z7",
+        "value": "Europe & Central Asia"
+      },
+      "adminregion": {
+        "id": "ECA",
+        "iso2code": "7E",
+        "value": "Europe & Central Asia (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Baku",
+      "longitude": "49.8932",
+      "latitude": "40.3834"
+    },
+    {
+      "id": "BDI",
+      "iso2Code": "BI",
+      "name": "Burundi",
+      "region": {
+        "id": "SSF",
+        "iso2code": "ZG",
+        "value": "Sub-Saharan Africa "
+      },
+      "adminregion": {
+        "id": "SSA",
+        "iso2code": "ZF",
+        "value": "Sub-Saharan Africa (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "LIC",
+        "iso2code": "XM",
+        "value": "Low income"
+      },
+      "lendingType": {
+        "id": "IDX",
+        "iso2code": "XI",
+        "value": "IDA"
+      },
+      "capitalCity": "Bujumbura",
+      "longitude": "29.3639",
+      "latitude": "-3.3784"
+    },
+    
+    
+    {
+      "id": "BEL",
+      "iso2Code": "BE",
+      "name": "Belgium",
+      "region": {
+        "id": "ECS",
+        "iso2code": "Z7",
+        "value": "Europe & Central Asia"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "LNX",
+        "iso2code": "XX",
+        "value": "Not classified"
+      },
+      "capitalCity": "Brussels",
+      "longitude": "4.36761",
+      "latitude": "50.8371"
+    },
+    {
+      "id": "BEN",
+      "iso2Code": "BJ",
+      "name": "Benin",
+      "region": {
+        "id": "SSF",
+        "iso2code": "ZG",
+        "value": "Sub-Saharan Africa "
+      },
+      "adminregion": {
+        "id": "SSA",
+        "iso2code": "ZF",
+        "value": "Sub-Saharan Africa (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "LIC",
+        "iso2code": "XM",
+        "value": "Low income"
+      },
+      "lendingType": {
+        "id": "IDX",
+        "iso2code": "XI",
+        "value": "IDA"
+      },
+      "capitalCity": "Porto-Novo",
+      "longitude": "2.6323",
+      "latitude": "6.4779"
+    },
+    {
+      "id": "CAN",
+      "iso2Code": "CA",
+      "name": "Canada",
+      "region": {
+        "id": "NAC",
+        "iso2code": "XU",
+        "value": "North America"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "LNX",
+        "iso2code": "XX",
+        "value": "Not classified"
+      },
+      "capitalCity": "Ottawa",
+      "longitude": "-75.6919",
+      "latitude": "45.4215"
+    },
+    
+    {
+      "id": "CEB",
+      "iso2Code": "B8",
+      "name": "Central Europe",
+      "region": {
+        "id": "NA",
+        "iso2code": "NA",
+        "value": "Aggregates"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "NA",
+        "iso2code": "NA",
+        "value": "Aggregates"
+      },
+      "lendingType": {
+        "id": "",
+        "iso2code": "",
+        "value": "Aggregates"
+      },
+      "capitalCity": "",
+      "longitude": "",
+      "latitude": ""
+    },
+    {
+      "id": "CEU",
+      "iso2Code": "C5",
+      "name": "Central Asia",
+      "region": {
+        "id": "NA",
+        "iso2code": "NA",
+        "value": "Aggregates"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "NA",
+        "iso2code": "NA",
+        "value": "Aggregates"
+      },
+      "lendingType": {
+        "id": "",
+        "iso2code": "",
+        "value": "Aggregates"
+      },
+      "capitalCity": "",
+      "longitude": "",
+      "latitude": ""
+    },
+    {
+      "id": "CHE",
+      "iso2Code": "CH",
+      "name": "Switzerland",
+      "region": {
+        "id": "ECS",
+        "iso2code": "Z7",
+        "value": "Europe & Central Asia"
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "LNX",
+        "iso2code": "XX",
+        "value": "Not classified"
+      },
+      "capitalCity": "Bern",
+      "longitude": "7.44821",
+      "latitude": "46.948"
+    },
+    
+    {
+      "id": "CHL",
+      "iso2Code": "CL",
+      "name": "Chile",
+      "region": {
+        "id": "LCN",
+        "iso2code": "ZJ",
+        "value": "Latin America & Caribbean "
+      },
+      "adminregion": {
+        "id": "",
+        "iso2code": "",
+        "value": ""
+      },
+      "incomeLevel": {
+        "id": "HIC",
+        "iso2code": "XD",
+        "value": "High income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Santiago",
+      "longitude": "-70.6475",
+      "latitude": "-33.475"
+    },
+    {
+      "id": "KHM",
+      "iso2Code": "KH",
+      "name": "Cambodia",
+      "region": {
+        "id": "EAS",
+        "iso2code": "Z4",
+        "value": "East Asia & Pacific"
+      },
+      "adminregion": {
+        "id": "EAP",
+        "iso2code": "4E",
+        "value": "East Asia & Pacific (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Phnom Penh",
+      "longitude": "105.0",
+      "latitude": "13.0"
+    },
+    {
+      "id": "CHN",
+      "iso2Code": "CN",
+      "name": "China",
+      "region": {
+        "id": "EAS",
+        "iso2code": "Z4",
+        "value": "East Asia & Pacific"
+      },
+      "adminregion": {
+        "id": "EAP",
+        "iso2code": "4E",
+        "value": "East Asia & Pacific (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Beijing",
+      "longitude": "105.0",
+      "latitude": "35.0"
+    },
+    {
+      "id": "NKO",
+      "iso2Code": "NK",
+      "name": "North Korea",
+      "region": {
+        "id": "EAS",
+        "iso2code": "Z4",
+        "value": "East Asia & Pacific"
+      },
+      "adminregion": {
+        "id": "EAP",
+        "iso2code": "4E",
+        "value": "East Asia & Pacific (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Pyongyang",
+      "longitude": "127.0",
+      "latitude": "40.0"
+    },
+    {
+      "id": "VIE",
+      "iso2Code": "VN",
+      "name": "Vietnam",
+      "region": {
+        "id": "EAS",
+        "iso2code": "Z4",
+        "value": "East Asia & Pacific"
+      },
+      "adminregion": {
+        "id": "EAP",
+        "iso2code": "4E",
+        "value": "East Asia & Pacific (excluding high income)"
+      },
+      "incomeLevel": {
+        "id": "UMC",
+        "iso2code": "XT",
+        "value": "Upper middle income"
+      },
+      "lendingType": {
+        "id": "IBD",
+        "iso2code": "XF",
+        "value": "IBRD"
+      },
+      "capitalCity": "Hanoi",
+      "longitude": "107.83333333",
+      "latitude": "16.16666666"
+    }
+  ]
+
+    const margin = { top: 50, left: 50, right: 50, bottom: 150};
+    const width = 900 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select("#map")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        //.append(g)
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    //const projection = d3.geoAlbersUsa()
+    //    .translate([width / 2, height / 2]) // translate to center of screen
+    //    .scale([1000]); // scale things down so see entire US
+
+d3.queue()
+  //.defer(d3.json, "https://unpkg.com/world-atlas@1.1.4/world/110m.json")
+  .defer(d3.json, "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
+  //.defer(d3.json, "http://api.worldbank.org/v2/country?format=json")
+  .await(ready)
+
+
+    const projection = d3.geoMercator()
+        .translate([width / 2, height / 1.2])
+        .scale([125]);
+
+    let path = d3.geoPath().projection(projection);
+
+//Loading Map shape
+    function ready (error, data) {
+      if (error) throw error;
+      var countries = topojson.feature(data,data.objects.countries).features;
+      console.log(countries);
+      console.log("CAP: ", capitals[0]);
+      var test = capitals[1];
+
+const tooltip = d3.select("#map").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+      svg.selectAll(".country")
+         .data(countries)
+         .enter().append("path")
+         .attr("d", path)
+         .attr('class', 'country')
+         .on('click', function(d) {           
+                                    d.properties.name === "China"? 
+                                      url = 'http://www.google.com'  
+                                    : d.properties.name === "Vietnam"?
+                                      url = 'http://www.cnn.com'  
+                                    : ''
+            window.location = url;
+            d3.select(this).classed("clicked", true)
+          })
+         .on('mouseover', function(d) {
+          console.log(capitals.name);
+          for (i=0; i < capitals.length; i++) {
+            if (d.properties.name === capitals[i].name ) {
+           tooltip.transition()
+              .duration(200)
+              .style("opacity", .9);
+              tooltip.style("left", (d3.event.pageX) + "px")
+              .style("top", (d3.event.pageY) + "px")
+              .text(()=> `${d.properties.name} | ${capitals[i].name} prisoners`)
+           d3.select(this).classed("selected", true)
+         }
+       }
+         })
+
+         .on('mouseout', function(d) {
+            d3.select(this).classed("selected", false)
+            tooltip.transition()    
+                .duration(500)    
+                tooltip.style("opacity", 0)
+         })
+    
+         console.log("Capitals", capitals);
+         svg.selectAll(".city-circle")
+            .data(capitals)        
+            .enter().append("circle")
+            .attr("r", 2)
+            .attr("cx", function(d) {
+              //console.log(d.name)
+              var coords = projection([d.longitude, d.latitude])
+              console.log(coords);
+              return coords[0];
+              })
+            .attr("cy", function(d) {
+              var coords = projection([d.longitude, d.latitude])
+              return coords[1] ;
+            })
+
+         svg.selectAll(".city-label")
+            .data(capitals)
+            .enter().append("text")
+            .attr("class", "city-label")
+            .attr("x", function(d) {
+              var coords = projection([d.longitude, d.latitude])
+              return coords[0];
+              })
+            .attr("y", function(d) {
+              var coords = projection([d.longitude, d.latitude])
+              return coords[1] ;
+            })
+            .text(function(d) {
+              return d.name
+            })
+            .attr("dx", 5)
+            .attr("dy", 2)
+
+
+// .on('mousemove', function (d) {
+//   // console.log(d);
+//     tooltip.transition()
+//         .duration(200)
+//         .style("opacity", .9);
+// //Any time the mouse moves, the tooltip should be at the same position
+//     tooltip.style("left", (d3.event.pageX) + "px")
+//         .style("top", (d3.event.pageY) + "px")
+// //The text inside should be State: rate%
+//         .text(()=> `${d.longitude}: ${d.name}`)
+// })
+
+        const legend = d3.select("#map").append('svg')
+
+          .attr('class', 'legend')
+          .attr('width', 148)
+          .attr('height', 75)
+          .selectAll('g')
+          .data('red')
+          .enter().append('g')
+          .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+          legend.append("rect")
+            //that's 18px wide
+            .attr("width", 18)
+            //and 18px high
+            .attr("height", 18)
+            //then fill it will the color assigned by the scale
+            .style("fill", 'red');
+
+          legend.append("text")
+             .attr("x", 24)
+             .attr("y", 9)
+             .attr("dy", ".35em")
+             .data(capitals)
+             .attr("class", "city-label")
+             .text(function(d) {
+              return d.name
+            })
+            
+      
+      };
+
+
+</script>
+</body>
+</html>
